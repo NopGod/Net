@@ -11,16 +11,18 @@ use GD::Simple;
 use MIME::Base64;
 use Data::Dumper;
 
+my $allpoints = 10;
 
-$points{$_} = {} for (1..3);
+for (1..$allpoints){
 
-# for (keys(%points)){
-#   print $points{$_}{"x"}." $_\n";
-# }
-#print Dumper(\%hash);
+  $points{$_} = {};
+  $bestway{$_} = {};
+}
+$points{"0"}{"x"} = $points{"0"}{"y"} = 10;
+
+#print Dumper(\%points{"0".."2"});
+#print $points{0..2};
 #exit 0;
-
-$first=1;
 
 my $mw = new MainWindow;
 $mw -> geometry ("900x500");
@@ -30,14 +32,17 @@ $code_font = $mw->fontCreate('code', -family => 'courier', -size => 8);
 
 $mw->repeat(100, \&do);
 
-$mw->Button(  -text => "Next step",
-              -command => sub {\&nextstep()},
-              -font => $code_font )->pack;
-
 $mw->Button(  -text => "Generate",
               -command => sub {\&gen()},
               -font => $code_font )->pack;
 
+$mw->Button(  -text => "Search",
+                            -command => sub {\&search()},
+                            -font => $code_font )->pack;
+
+$mw->Button(  -text => "Best way",
+              -command => sub {\&bestway()},
+              -font => $code_font )->pack;
 
 $label = $mw->Label( -image => $image )->pack(-side => right);
 
@@ -47,7 +52,8 @@ $label2 = $mw->Label( -text => "Info...",
                       -font => $code_font )->pack( -side => left );
 
 $label3 = $mw->Label( -text => "Stats...",
-                      -justify => 'left' )->pack( -side => left );
+                      -justify => 'left',
+                      -font => $code_font )->pack( -side => left );
 
 $mw->MainLoop;
 
@@ -55,49 +61,64 @@ $mw->MainLoop;
 sub do { # Таймер
   my $pr;
   for (keys(%points)){
-    $pr .= $_ . ": x.". $points{$_}{"x"} ." y.". $points{$_}{"y"} ."
-           Distance: ". $points{$_}{"S"} ."
-              Check: ". $points{$_}{"c"} ."\n\n";
+    next if $_ == 0;
+    $pr .= $_ . ": x.". $points{$_}{"x"} ." y.". $points{$_}{"y"} ."\n\n";
   }
-  $pr .= "\n$pri ";
+  $pr .= "\n";
   $label2->configure (-text => $pr);
-  #$label3->configure (-text => "$pri");
+  $label3->configure (-text => "$pri");
+}
+
+sub bestway {
+
+  for (keys(%bestway)){
+    #$bestway{"0"}{$_} = $bestway{$_}{"0"};
+  }
+  $pri = Dumper(\%bestway);
 }
 
 sub stats {
   my ($ot, $do, $dist)=@_;
-  #push(@stats, );
-  #$label3->configure (-text => $pron);
+  $bestway{$ot}{$do} = $dist;
+  $pri = Dumper(\%bestway);
 }
 
-sub nextstep {
+sub search {
   my $img = GD::Simple->new(400, 400);
   my $rast;
 
   for (keys(%points)){
-    my $rast = sprintf('%.f', distance(10, 10, $points{$_}{"x"}, $points{$_}{"y"}));
 
-    #print "0-$_ $rast\n";
+    next if $_ == $pred;
 
+    my $rast = sprintf('%.f', distance($predx, $predy, $points{$_}{"x"}, $points{$_}{"y"}));
+
+    $img->fgcolor(200, 200, 200);
     $img->moveTo(10, 10);
     $img->lineTo($points{$_}{"x"}, $points{$_}{"y"});
+
     my ($predx, $predy, $pred)=($points{$_}{"x"}, $points{$_}{"y"}, $_);
+
+    $bestway{$_}{"0"} = $rast;
     draw($img);
-    stats($_, 0, $rast);
 
     for (keys(%points)){
+      next if exists $bestway{$_}{$pred};
+
       next if $_ == $pred;
+      print "$_ $pred ".$points{$_}{$pred};
 
       my $rast = sprintf('%.f', distance($predx, $predy, $points{$_}{"x"}, $points{$_}{"y"}));
+
+      $img->fgcolor(200, 200, 200);
       $img->moveTo($predx, $predy);
       $img->lineTo($points{$_}{"x"}, $points{$_}{"y"});
 
-      #print "$pred-$_ $rast\n";
-      stats($pred, $_, $rast);
+      $bestway{$pred}{$_} = $rast;
       draw($img);
     }
   }
-
+  $pri = Dumper(\%bestway);
   drawhome($img);
   drawdot($img);
   draw($img);
@@ -109,6 +130,7 @@ sub gen { # Новая генерация
   my $img = GD::Simple->new(400, 400);
 
   for (keys(%points)){
+    next if $_ == 0;
     $points{$_}{"x"} = int(rand(400));   # Занесение в массив точек
     $points{$_}{"y"} = int(rand(400));   #
     #$_->{$co}->{"c"} = 0;
@@ -137,6 +159,7 @@ sub drawhome {
 sub drawdot {
   my $img = $_[0];
   for (keys(%points)){
+    next if $_ == 0;
     $img->moveTo($points{$_}{"x"}, $points{$_}{"y"});
     $img->bgcolor(undef);
     $img->fgcolor('gray');
