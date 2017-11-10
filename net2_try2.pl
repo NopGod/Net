@@ -9,8 +9,12 @@ $| = 1;
 
 my $allpoints = 5; # Всего точек
 
+$frac += $_ foreach (1..$allpoints);
+# print $frac;
+#  exit 0;
+
 for (1..$allpoints){
-  $points{$_} = {};
+  $points{$_}{"c"} = 0;
 }
 
 my (%bestway);
@@ -69,69 +73,50 @@ sub do { # Таймер
 
 sub bestway {
   my $img = GD::Simple->new(400, 400);
-  my (@curr,%winner);
-
-  push(@curr,$_) foreach (1..$allpoints);
-
-  my $combinat = Math::Combinatorics->new( count => 2, data => [@curr]);
-
-  while(my @permu = $combinat->next_permutation){
-    my ($chot, $chdo, $ot, $alldest);
-    unshift(@permu,0);
-
-    foreach(0..$#permu-1){
-      $chot = $permu[$ot];
-      $ot++;
-      $chdo = $permu[$ot];
-      $alldest+= $bestway{"$chot.$chdo"} ? ($bestway{"$chot.$chdo"}) : $alldest+= $bestway{"$chdo.$chot"};
-    }
-    $winner{$alldest} = join('.', @permu);
+  for (keys(%bestway)){
+    my $curkey = $_;
+    #print $curkey."\n";
+    my @mind = sort {$a<=>$b} values %bestway;
+    $win = $curkey if $bestway{$curkey} eq $mind[0];
   }
-  push(my @array, sort {$a<=>$b} keys %winner);
-  my @doneway = split(/\./, $winner{$array[0]});
-  $pri = "WON THE WAY: ".join(' ', @doneway);
 
-  for(0..$#doneway-1){
-    $img->fgcolor(100, 200, 100);
-    $img->moveTo($points{$doneway[$_]}{"x"}, $points{$doneway[$_]}{"y"});
-    $img->lineTo($points{$doneway[$_+1]}{"x"}, $points{$doneway[$_+1]}{"y"});
-    drawhome($img); drawdot($img); draw($img);
-  }
+  push(my @array, sort {$a<=>$b} values %bestway);
+  print $win;
 }
 
 sub search {
   my $img = GD::Simple->new(400, 400);
-  my $rast;
 
-  for (keys(%points)){
-    next if $_ == $pred;
-
-    my $rast = sprintf('%.f', distance($predx, $predy, $points{$_}{"x"}, $points{$_}{"y"}));
-
-    $img->fgcolor(200, 200, 200);
-    $img->moveTo(10, 10);
-    $img->lineTo($points{$_}{"x"}, $points{$_}{"y"});
-
-    my ($predx, $predy, $pred)=($points{$_}{"x"}, $points{$_}{"y"}, $_);
-    $bestway{"$_.0"}= $rast;
-    #$bestway{$_}{"0"} = $rast;
-    draw($img);
+  my $pred = 0;
+  for (0..$frac){
+    my $rast;
 
     for (keys(%points)){
-      next if $bestway{"$_.$pred"};
-      next if $_ == $pred;
+      $curp=$_;
+      #print $pred." ".$points{$curp}{"c"}."\n";
+      next if $points{$curp}{"c"} == 1 || $curp == $pred;
 
-      my $rast = sprintf('%.f', distance($predx, $predy, $points{$_}{"x"}, $points{$_}{"y"}));
+      $rast = sprintf('%.f', distance($points{$pred}{"x"}, $points{$pred}{"y"}, $points{$_}{"x"}, $points{$_}{"y"}));
 
-      $img->fgcolor(200, 200, 200);
-      $img->moveTo($predx, $predy);
-      $img->lineTo($points{$_}{"x"}, $points{$_}{"y"});
-      $api++;
-      $bestway{"$pred.$_"}= $rast;
-
-      draw($img);
+      $bestway{"$pred.$curp"}= $rast;
+      #$pred=$_;
+      $points{$_}{"c"} = 1;
     }
+
+    foreach my $name (sort { $bestway{$a} <=> $bestway{$b} } keys %bestway) {
+      $kek=$name;
+
+      last;
+    }
+    $pred = $1 if $kek =~/\.(\d)/;
+    $winner .= "$pred ";
+
+    #print Dumper(\%bestway);
+    #shift @array;
+    #exit 0;
+
   }
+  print $winner;
   $pri = Dumper(\%bestway);
   drawhome($img); drawdot($img); draw($img);
 }

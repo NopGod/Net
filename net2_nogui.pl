@@ -23,7 +23,7 @@ for (keys(%points)){
 
   next if $_ == 0;
 
-  
+
   $points{$_}{"x"} = int(rand(400));   # Занесение в массив точек
   $points{$_}{"y"} = int(rand(400));   #
 }
@@ -51,20 +51,9 @@ push(@curr,$_) foreach (1..$allpoints);
 #   push(@arre,);
 # }
 
-#push(my @array, sort {$a<=>$b} values %bestway);
-#print shift @array;
-sub fact {
-  my $n = shift;
-  my $result = 1;
-  foreach my $i (1 .. $n) {
-    $result *= $i;
-  }
-  $result
-}
+push(my @array, sort {$a<=>$b} values %bestway);
+print shift @array;
 
-foreach my $i (0..16) {
-    print "$i! = ", fact($i), "\n";
-}
 # sub combine;
 #
 # for (combine [@curr], $#curr) {

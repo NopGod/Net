@@ -87,6 +87,7 @@ sub bestway {
     }
     $winner{$alldest} = join('.', @permu);
   }
+  print Dumper(\%winner);
   push(my @array, sort {$a<=>$b} keys %winner);
   my @doneway = split(/\./, $winner{$array[0]});
   $pri = "WON THE WAY: ".join(' ', @doneway);
