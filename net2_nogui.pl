@@ -20,8 +20,10 @@ $points{"0"}{"x"} = $points{"0"}{"y"} = 10;
 #exit 0;
 
 for (keys(%points)){
-  
+
   next if $_ == 0;
+
+  
   $points{$_}{"x"} = int(rand(400));   # Занесение в массив точек
   $points{$_}{"y"} = int(rand(400));   #
 }
