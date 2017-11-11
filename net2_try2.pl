@@ -5,24 +5,21 @@ use GD::Simple;
 use MIME::Base64;
 use Data::Dumper;
 use Math::Combinatorics;
+use Benchmark qw(:all) ;
 $| = 1;
 
-my $allpoints = 5; # Всего точек
-
-$frac += $_ foreach (1..$allpoints);
-# print $frac;
-#  exit 0;
+my $allpoints = 6; # Всего точек
 
 for (1..$allpoints){
-  $points{$_}{"c"} = 0;
+  $points{$_}{"x"} =$points{$_}{"y"} = $points{$_}{"c"} = 0;
 }
-
+$points{"0"}{"c"}= 1;
 my (%bestway);
 
 $points{"0"}{"x"} = $points{"0"}{"y"} = 10;
 
-#print Dumper(\%bestway);
-#exit 0;
+# print Dumper(\%points);
+# exit 0;
 
 my $mw = new MainWindow;
 $mw -> geometry ("900x500");
@@ -32,15 +29,15 @@ $code_font = $mw->fontCreate('code',  -family => 'courier',
 
 $mw->repeat(100, \&do);
 
-$mw->Button(  -text => "Generate",
-              -command => sub {\&gen()},
-              -font => $code_font )->pack;
+# $mw->Button(  -text => "Generate",
+#               -command => sub {\&gen()},
+#               -font => $code_font )->pack;
 
-$mw->Button(  -text => "Search",
+$mw->Button(  -text => "Smart",
               -command => sub {\&search()},
               -font => $code_font )->pack;
 
-$mw->Button(  -text => "Best way",
+$mw->Button(  -text => "Bruteforce",
               -command => sub {\&bestway()},
               -font => $code_font )->pack;
 
@@ -54,6 +51,8 @@ $label2 = $mw->Label( -text => "",
 $label3 = $mw->Label( -text => "",
                       -justify => 'left',
                       -font => $code_font )->pack( -side => left );
+gen();
+
 
 $mw->MainLoop;
 #------------------------------------------------------------------------------
@@ -62,69 +61,143 @@ sub do { # Таймер
 
   for (keys(%points)){
     next if $_ == 0;
-
     $pr .= $_ .": x.". $points{$_}{"x"} .
                 " y.". $points{$_}{"y"} ."\n";
   }
-  $pr .= "API counter: $api\n";
   $label2->configure (-text => $pr);
-  $label3->configure (-text => "$pri");
-}
-
-sub bestway {
-  my $img = GD::Simple->new(400, 400);
-  for (keys(%bestway)){
-    my $curkey = $_;
-    #print $curkey."\n";
-    my @mind = sort {$a<=>$b} values %bestway;
-    $win = $curkey if $bestway{$curkey} eq $mind[0];
-  }
-
-  push(my @array, sort {$a<=>$b} values %bestway);
-  print $win;
+  $label3->configure (-text => "$pri2\n$pri");
 }
 
 sub search {
-  my $img = GD::Simple->new(400, 400);
-
   my $pred = 0;
-  for (0..$frac){
+  #my $had = "0 ";
+  for (0..$allpoints){
+    #my $tests= $_;
     my $rast;
-
+    my %bestway;
     for (keys(%points)){
       $curp=$_;
-      #print $pred." ".$points{$curp}{"c"}."\n";
-      next if $points{$curp}{"c"} == 1 || $curp == $pred;
 
-      $rast = sprintf('%.f', distance($points{$pred}{"x"}, $points{$pred}{"y"}, $points{$_}{"x"}, $points{$_}{"y"}));
+      next if ($had =~/$curp/ or $curp eq $pred);
+      $img->moveTo($points{$pred}{"x"}, $points{$pred}{"y"});
+      $img->bgcolor('gray');
+      $img->fgcolor('gray');
+      $img->ellipse(15, 15); # (x, y) Рисуем точки
 
-      $bestway{"$pred.$curp"}= $rast;
+      $img->fgcolor(230, 230, 230);
+      $img->moveTo($points{$pred}{"x"}, $points{$pred}{"y"});
+      $img->lineTo($points{$curp}{"x"}, $points{$curp}{"y"});
+      select(undef, undef, undef, 0.15);
+      draw($img);
+      $rast = sprintf('%.f', distance($points{$pred}{"x"}, $points{$pred}{"y"}, $points{$curp}{"x"}, $points{$curp}{"y"}));
+
+      $bestway{"$pred.$curp"} = $rast;
       #$pred=$_;
-      $points{$_}{"c"} = 1;
+      #$img = GD::Simple->new(400, 400);
+      $mw->update;
     }
 
-    foreach my $name (sort { $bestway{$a} <=> $bestway{$b} } keys %bestway) {
-      $kek=$name;
 
+    $had.="$pred ";
+    foreach my $name (sort { $bestway{$a} <=> $bestway{$b} } keys %bestway) {
+      #print Dumper(\%bestway);
+      $tlen+= $bestway{$name};
+      $pred = $1 if $name =~/\.(\d+)/;
+      #$winner .= "$pred ";
+
+
+      #print "check - ".$points{$curp}{"c"}." pred_new - $name $pred - $rast\n";
       last;
     }
-    $pred = $1 if $kek =~/\.(\d)/;
-    $winner .= "$pred ";
-
-    #print Dumper(\%bestway);
-    #shift @array;
-    #exit 0;
+    # my $drp = $1 if $curp=~/(\d+)\./;
+    # print $curp;
+    # exit;
 
   }
-  print $winner;
-  $pri = Dumper(\%bestway);
-  drawhome($img); drawdot($img); draw($img);
+  my @doneway = split(/ /, $had);
+  #print $had;
+
+  for (0..$#doneway-1){
+    #print $doneway[$_]."\n";
+
+    $img->fgcolor(100, 200, 100);
+    $img->moveTo($points{$doneway[$_]}{"x"}, $points{$doneway[$_]}{"y"});
+    $img->lineTo($points{$doneway[$_+1]}{"x"}, $points{$doneway[$_+1]}{"y"});
+    select(undef, undef, undef, 0.25);
+    draw($img);
+    $mw->update;
+  }
+  #drawhome($img); drawdot($img); draw($img);
+  $pri2 = "Total length(smart): $tlen\n";
+}
+
+sub bestway {
+  my $rast;
+  my %bestway;
+  for (keys(%points)){
+    next if $_ == $pred;
+
+    my $rast = sprintf('%.f', distance($predx, $predy, $points{$_}{"x"}, $points{$_}{"y"}));
+
+    my ($predx, $predy, $pred)=($points{$_}{"x"}, $points{$_}{"y"}, $_);
+    $bestway{"$_.0"}= $rast;
+    #$bestway{$_}{"0"} = $rast;
+
+    for (keys(%points)){
+      next if $bestway{"$_.$pred"};
+      next if $_ == $pred;
+      my $rast = sprintf('%.f', distance($predx, $predy, $points{$_}{"x"}, $points{$_}{"y"}));
+
+      $bestway{"$pred.$_"}= $rast;
+
+
+    }
+  }
+  #print Dumper(\%bestway);
+
+  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  my (@curr,%winner);
+
+  push(@curr,$_) foreach (1..$allpoints);
+
+  my $combinat = Math::Combinatorics->new( count => 2, data => [@curr]);
+
+  while(my @permu = $combinat->next_permutation){
+    my ($chot, $chdo, $ot, $alldest);
+    unshift(@permu,0);
+
+    foreach(0..$#permu-1){
+      $chot = $permu[$ot];
+      $ot++;
+      $chdo = $permu[$ot];
+      if ($bestway{"$chot.$chdo"}){
+        $alldest+= $bestway{"$chot.$chdo"}
+      } elsif ($bestway{"$chdo.$chot"}){
+        $alldest+= $bestway{"$chdo.$chot"}
+      }
+    }
+    $winner{$alldest} = join('.', @permu);
+  }
+  #print Dumper(\%bestway);
+  push(my @array, sort {$a<=>$b} keys %winner);
+  my @doneway = split(/\./, $winner{$array[0]});
+  #print Dumper(\@array);
+  $pri = "Total length(bruteforce): ".$array[0];
+
+  for(0..$#doneway-1){
+    $img->fgcolor(250, 100, 100);
+    $img->moveTo($points{$doneway[$_]}{"x"}+3, $points{$doneway[$_]}{"y"}+3);
+    $img->lineTo($points{$doneway[$_+1]}{"x"}+3, $points{$doneway[$_+1]}{"y"}+3);
+    draw($img);
+    select(undef, undef, undef, 0.25);
+    $mw->update;
+  }
 }
 
 sub gen { # Новая генерация
-  $predx, $predy;
+  $predx, $predy, $pri2, $pri;
 
-  my $img = GD::Simple->new(400, 400);
+  $img = GD::Simple->new(400, 400);
 
   for (keys(%points)){
     next if $_ == 0;
