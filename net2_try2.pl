@@ -8,7 +8,7 @@ use Math::Combinatorics;
 use Benchmark qw(:all) ;
 $| = 1;
 
-my $allpoints = 6; # Всего точек
+my $allpoints = 10; # Всего точек
 
 for (1..$allpoints){
   $points{$_}{"x"} =$points{$_}{"y"} = $points{$_}{"c"} = 0;
@@ -84,17 +84,13 @@ sub search {
       $img->fgcolor('gray');
       $img->ellipse(15, 15); # (x, y) Рисуем точки
 
-      $img->fgcolor(230, 230, 230);
-      $img->moveTo($points{$pred}{"x"}, $points{$pred}{"y"});
-      $img->lineTo($points{$curp}{"x"}, $points{$curp}{"y"});
-      select(undef, undef, undef, 0.15);
-      draw($img);
+
       $rast = sprintf('%.f', distance($points{$pred}{"x"}, $points{$pred}{"y"}, $points{$curp}{"x"}, $points{$curp}{"y"}));
 
       $bestway{"$pred.$curp"} = $rast;
       #$pred=$_;
       #$img = GD::Simple->new(400, 400);
-      $mw->update;
+      
     }
 
 
@@ -105,9 +101,14 @@ sub search {
       $pred = $1 if $name =~/\.(\d+)/;
       #$winner .= "$pred ";
 
-
+      $img->fgcolor(230, 230, 230);
+      $img->moveTo($points{$pred}{"x"}, $points{$pred}{"y"});
+      $img->lineTo($points{$curp}{"x"}, $points{$curp}{"y"});
+      select(undef, undef, undef, 0.15);
+      draw($img);
       #print "check - ".$points{$curp}{"c"}." pred_new - $name $pred - $rast\n";
       last;
+
     }
     # my $drp = $1 if $curp=~/(\d+)\./;
     # print $curp;
@@ -123,7 +124,7 @@ sub search {
     $img->fgcolor(100, 200, 100);
     $img->moveTo($points{$doneway[$_]}{"x"}, $points{$doneway[$_]}{"y"});
     $img->lineTo($points{$doneway[$_+1]}{"x"}, $points{$doneway[$_+1]}{"y"});
-    select(undef, undef, undef, 0.25);
+    #select(undef, undef, undef, 0.25);
     draw($img);
     $mw->update;
   }
